@@ -13,15 +13,17 @@ static char* outfile = NULL;
 static char* blockname = NULL;
 static char help = 0;
 static char audio = 0;
+static char nogap = 0;
 static char fast = 0;
 static char tokbasic = 0;
+char freq3600 = 0;
 
 static int create_file(const char* target, int laser500);
 
 /* Options that are available for this module */
 option_t vz_options[] = {
     { 'h', "help", "Display this help", OPT_BOOL, &help },
-    { 'b', "binfile", "Linked binary file", OPT_STR, &binname },
+    { 'b', "binfile", "Linked binary file", OPT_STR, &binname },	   
     { 'c', "crt0file", "crt0 file used in linking", OPT_STR, &crtfile },
     { 'o', "output", "Name of output file", OPT_STR, &outfile },
     { 0, "audio", "Create also a WAV file", OPT_BOOL, &audio },
@@ -33,11 +35,13 @@ option_t vz_options[] = {
 option_t laser500_options[] = {
     { 'h', "help", "Display this help", OPT_BOOL, &help },
     { 'b', "binfile", "Linked binary file", OPT_STR, &binname },
-    { 't', "tokbasic", "Tokenized basic file", OPT_BOOL, &tokbasic },	 
+    { 't', "tokbasic", "Tokenized basic file", OPT_BOOL, &tokbasic },	
     { 'c', "crt0file", "crt0 file used in linking", OPT_STR, &crtfile },
     { 'o', "output", "Name of output file", OPT_STR, &outfile },
     { 0, "fast", "Create a fast loading WAV", OPT_BOOL, &fast },
     { 0, "audio", "Create also a WAV file", OPT_BOOL, &audio },
+    { 0, "nogap", "Remove gap after filename", OPT_BOOL, &nogap },
+    { 0, "freq3600", "Change from 44,1KHz to 3600Hz", OPT_BOOL, &freq3600 },	   
     { 0, NULL, NULL, OPT_NONE, NULL }
 };
 
@@ -57,17 +61,29 @@ void vz_bit(FILE* fpout, unsigned char bit)
 {
     int bip, bop;
 
-    if (fast) {
-        //bip = 11;
-        //bop = 23;
-        bip = 2;
-        bop = 4;		
-    } else {					//Fshortpulse=3600 Hz= 277.77us
-        //bip = 12;
-        //bop = 25;
-        bip = 2; // 2* 3600 = 7200 Hz
-        bop = 4;		
-    }
+	if (freq3600) {
+	    if (fast) {
+	        //bip = 11;
+	        //bop = 23;
+	        bip = 1;
+	        bop = 2;		
+	    } else {					//Fshortpulse=3600 Hz= 277.77us
+	        //bip = 12;
+	        //bop = 25;
+	        bip = 1; // 1* 3600 = 3600 Hz
+	        bop = 2;		
+	    }
+	}
+	else {				//44,1 KHz
+	    if (fast) {
+	        bip = 11;
+	        bop = 23;
+	    } else {					
+	        bip = 12;
+	        bop = 25;
+		
+	    }
+	}	   
 
     if (bit) {
         /* '1' */
@@ -167,9 +183,9 @@ static int create_file(const char* target, int laser500)
     for (i = 0; i < 5; i++)
         fputc(0xFE, fpout); /* leadin */
 
-    if (laser500) {
+    if (laser500) { 
 		if (tokbasic) fputc(0xf0, fpout); 	// BASIC
-		else fputc(0xf1, fpout); 	 		// BINARY
+		else fputc(0xf1, fpout); 	 		// BINARY	
     } else {
         c = fgetc(fpin); /* File Type */
         fputc(c, fpout);
@@ -241,7 +257,7 @@ static int create_file(const char* target, int laser500)
 
         /* leading silence */
         //for (i = 0; i < 0x20000; i++) fputc(0x20, fpout);
-       // for (i = 0; i < 0x1500; i++) fputc(0x00, fpout);
+   //     for (i = 0; i < 0x1500; i++) fputc(0x00, fpout);
 		
         /* header+filename */
         for (i = 0; (i < hdlen); i++) {
@@ -264,11 +280,12 @@ static int create_file(const char* target, int laser500)
 	    for (i=0; i < 25; i++)
 			fputc(0, fpout);
 		*/
-
-        for (i = 0; i < 159; i++) {
-            //fputc(0x20, fpout);
-            fputc(0x00, fpout);	  	  	  
-        }
+		if (!nogap){
+	        for (i = 0; i < 159; i++) {
+	            //fputc(0x20, fpout);
+				fputc(0x00, fpout);
+	        }
+		}
 
         /* start addr + end addr + program block */
         for (i = 0; (i < (len - hdlen)); i++) {
