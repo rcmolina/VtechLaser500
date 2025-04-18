@@ -9,7 +9,7 @@ Follow this procedure:
 
 Or even better with tzx id11:
 
-1)laser2cas -t -b loop.bin --audio
-2)Remove middle silences with audacity from loop.wav, export the result as wav 8 bit mono loop2.wav
-3)wav2tzx -pilot 0 loop2.wav loop2_id11.tzx
+* 1)laser2cas -t -b loop.bin --audio
+* 2)Remove middle silences with audacity from loop.wav, export the result as wav 8 bit mono loop2.wav
+* 3)wav2tzx -pilot 0 loop2.wav loop2_id11.tzx
 
